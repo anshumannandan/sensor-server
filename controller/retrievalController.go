@@ -2,7 +2,8 @@ package controller
 
 import (
 	"net/http"
-	"sensor/service"
+	"sensor-server/service"
+	"strconv"
 )
 
 func RetrievalController(w http.ResponseWriter, r *http.Request) {
@@ -12,13 +13,13 @@ func RetrievalController(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	try {
-		median, err := service.RetrievalService()
-	} catch (e) {
-		http.Error(w, e, http.StatusInternalServerError)
-		return
-	}
+	median, err := service.RetrievalService()
+	if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(median))
+	medianStr := strconv.FormatFloat(median, 'f', -1, 64)
+	w.Write([]byte(medianStr))
 }

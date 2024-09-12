@@ -2,7 +2,7 @@ package controller
 
 import (
 	"net/http"
-	"sensor/service"
+	"sensor-server/service"
 )
 
 func IngestionController(w http.ResponseWriter, r *http.Request) {
@@ -18,12 +18,11 @@ func IngestionController(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-	try {
-		service.IngestionService(csvURL)
-	} catch (e) {
-		http.Error(w, e, http.StatusInternalServerError)
-		return
-	}
+	err := service.IngestionService(csvURL)
+	if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
 
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte("Ingestion successful"))

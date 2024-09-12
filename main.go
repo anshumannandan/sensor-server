@@ -2,7 +2,7 @@ package main
 
 import (
 	"net/http"
-	"sensor/controller"
+	"sensor-server/controller"
 )
 
 func main() {

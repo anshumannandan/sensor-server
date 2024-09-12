@@ -1,0 +1,20 @@
+name: sensor-server
+
+services:
+  influxdb:
+    image: influxdb:alpine
+    environment:
+      - INFLUXDB_INIT_MODE=setup
+      - INFLUXDB_INIT_USERNAME=root
+      - INFLUXDB_INIT_PASSWORD=secret
+      - INFLUXDB_INIT_ORG=sensor
+      - INFLUXDB_INIT_BUCKET=sensor-server
+    ports:
+      - "8086:8086"
+
+  sensor-server:
+    build: .
+    ports:
+      - "5000:5000"
+    depends_on:
+      - influxdb

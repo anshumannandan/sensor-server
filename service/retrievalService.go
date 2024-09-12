@@ -3,6 +3,6 @@ package service
 import (
 )
 
-func RetrievalService() error {
-	return nil
+func RetrievalService() (float64, error) {
+	return 0, nil
 }
