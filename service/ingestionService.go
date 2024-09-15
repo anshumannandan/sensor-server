@@ -44,6 +44,7 @@ func IngestionService(csvURL string) error {
 func IngestSensorData(reader *csv.Reader) error {
 	points:= []*write.Point{}
 	header := true
+	batchSize := 50000
 	for {
 		record, err := reader.Read()
 		if err != nil {
@@ -64,6 +65,11 @@ func IngestSensorData(reader *csv.Reader) error {
 			continue
 		}
 		points = append(points, point)
+		if len(points) >= batchSize {
+			initializer.WriteAPI.WritePoint(context.Background(), points...)
+			initializer.WriteAPI.Flush(context.Background())
+			points = []*write.Point{}
+		}
 	}
 	initializer.WriteAPI.WritePoint(context.Background(), points...)
 	initializer.WriteAPI.Flush(context.Background())
