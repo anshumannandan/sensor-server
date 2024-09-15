@@ -2,24 +2,30 @@ package controller
 
 import (
 	"net/http"
-	"sensor-server/service"
+	"log"
 	"strconv"
+	"sensor-server/service"
 )
 
 func RetrievalController(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodGet {
+		log.Printf("Method Not Allowed: %v", r.Method)
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	median, err := service.RetrievalService()
 	if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
+		log.Printf("Error retrieving median: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
-	medianStr := strconv.FormatFloat(median, 'f', -1, 64)
-	w.Write([]byte(medianStr))
+	medianStr := strconv.Itoa(int(median))
+	_, err = w.Write([]byte(medianStr))
+	if err != nil {
+		log.Printf("Error writing response: %v", err)
+	}
 }
