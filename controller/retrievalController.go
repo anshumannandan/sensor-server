@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"sensor-server/service"
-	"strconv"
 )
 
 func RetrievalController(w http.ResponseWriter, r *http.Request) {
@@ -21,7 +20,9 @@ func RetrievalController(w http.ResponseWriter, r *http.Request) {
 	if filterJSON != "" {
 		err := json.Unmarshal([]byte(filterJSON), &decodedData)
 		if err != nil {
-			log.Fatalf("Error unmarshaling JSON: %v", err)
+			log.Printf("Error unmarshaling JSON: %v", err)
+			http.Error(w, "Invalid filter format", http.StatusBadRequest)
+			return
 		}
 	}
 
@@ -32,10 +33,13 @@ func RetrievalController(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	response := map[string]interface{}{
+		// "count" : count,
+		"median": median,
+	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	medianStr := strconv.Itoa(int(median))
-	_, err = w.Write([]byte(medianStr))
-	if err != nil {
-		log.Printf("Error writing response: %v", err)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding response: %v", err)
 	}
 }

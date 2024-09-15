@@ -9,27 +9,32 @@ import (
 )
 
 func RetrieveSensorData(filter map[string][]string) (float64, error) {
-	query := `from(bucket: "sensor-data-bucket") |> range(start: 0)`
+	var builder strings.Builder
+	builder.WriteString(`from(bucket: "sensor-data-bucket") |> range(start: 0)`)
 
 	var conditions []string
 	if ids, ok := filter["id"]; ok && len(ids) > 0 {
-		conditions = append(conditions, fmt.Sprintf(`(r.id == "%s")`, strings.Join(ids, `" or r.id == "`)))
+		conditions = append(conditions, buildFilterCondition("id", ids))
 	}
 	if types, ok := filter["type"]; ok && len(types) > 0 {
-		conditions = append(conditions, fmt.Sprintf(`(r.type == "%s")`, strings.Join(types, `" or r.type == "`)))
+		conditions = append(conditions, buildFilterCondition("type", types))
 	}
 	if subtypes, ok := filter["subtype"]; ok && len(subtypes) > 0 {
-		conditions = append(conditions, fmt.Sprintf(`(r.subtype == "%s")`, strings.Join(subtypes, `" or r.subtype == "`)))
+		conditions = append(conditions, buildFilterCondition("subtype", subtypes))
 	}
 	if locations, ok := filter["location"]; ok && len(locations) > 0 {
-		conditions = append(conditions, fmt.Sprintf(`(r.location == "%s")`, strings.Join(locations, `" or r.location == "`)))
+		conditions = append(conditions, buildFilterCondition("location", locations))
 	}
 
 	if len(conditions) > 0 {
-		query += fmt.Sprintf(` |> filter(fn: (r) => %s)`, strings.Join(conditions, " and "))
+		builder.WriteString(` |> filter(fn: (r) => `)
+		builder.WriteString(strings.Join(conditions, " and "))
+		builder.WriteString(")")
 	}
 
-	query += ` |> group(columns : ["reading"]) |> median()`
+	builder.WriteString(` |> group(columns: ["_measurement"]) |> median()`)
+
+	query := builder.String()
 	log.Printf("InfluxDB Query: %s", query)
 
 	result, err := initializer.QueryAPI.Query(context.Background(), query)
@@ -40,7 +45,7 @@ func RetrieveSensorData(filter map[string][]string) (float64, error) {
 	defer result.Close()
 
 	var median float64
-	for result.Next() {
+	if result.Next() {
 		record := result.Record()
 		log.Printf("Record: %v", record)
 		if value, ok := record.Value().(float64); ok {
@@ -48,11 +53,21 @@ func RetrieveSensorData(filter map[string][]string) (float64, error) {
 		} else {
 			log.Printf("Error parsing median value")
 		}
-	}
-	if result.Err() != nil {
-		log.Printf("Error retrieving data: %v", result.Err())
-		return median, result.Err()
+	} else {
+		if result.Err() != nil {
+			log.Printf("Error retrieving data: %v", result.Err())
+			return median, result.Err()
+		}
+		log.Printf("No records found")
 	}
 
 	return median, nil
+}
+
+func buildFilterCondition(field string, values []string) string {
+	conditions := make([]string, len(values))
+	for i, value := range values {
+		conditions[i] = fmt.Sprintf(`r.%s == "%s"`, field, value)
+	}
+	return fmt.Sprintf(`(%s)`, strings.Join(conditions, " or "))
 }
