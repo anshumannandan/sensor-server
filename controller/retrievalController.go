@@ -26,7 +26,7 @@ func RetrievalController(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	median, err := service.RetrievalService(decodedData)
+	median, count, err := service.RetrievalService(decodedData)
 	if err != nil {
 		log.Printf("Error retrieving median: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -34,7 +34,7 @@ func RetrievalController(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := map[string]interface{}{
-		// "count" : count,
+		"count" : count,
 		"median": int(median),
 	}
 	w.Header().Set("Content-Type", "application/json")

@@ -15,26 +15,28 @@ import (
 )
 
 func IngestionService(csvURL string) error {
-	log.Printf("Ingesting sensor data from: %s", csvURL)
+	log.Printf("Starting ingestion from URL: %s", csvURL)
 
 	resp, err := http.Get(csvURL)
 	if err != nil {
-		log.Printf("Failed to fetch CSV from %s: %v", csvURL, err)
+		log.Printf("Error fetching CSV from %s: %v", csvURL, err)
 		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		err := errors.New("received non-OK HTTP status: " + resp.Status)
-		log.Printf("Failed to fetch CSV: %s, status code: %d", resp.Status, resp.StatusCode)
+		err := errors.New("non-OK HTTP status: " + resp.Status)
+		log.Printf("Error fetching CSV: %s, status code: %d", csvURL, resp.StatusCode)
 		return err
 	}
 
 	reader := csv.NewReader(resp.Body)
 	if err := IngestSensorData(reader); err != nil {
-		log.Printf("Failed to ingest sensor data: %v", err)
+		log.Printf("Failed to ingest data: %v", err)
 		return err
 	}
+
+	log.Println("Ingestion completed successfully.")
 	return nil
 }
 
