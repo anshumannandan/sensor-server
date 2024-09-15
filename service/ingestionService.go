@@ -1,13 +1,17 @@
 package service
 
 import (
-	"bytes"
 	"encoding/csv"
 	"errors"
 	"io"
 	"log"
 	"net/http"
-	"sensor-server/dataAccess"
+	"sensor-server/initializer"
+	"strconv"
+	"time"
+
+	"github.com/influxdata/influxdb-client-go/v2"
+	"github.com/influxdata/influxdb-client-go/v2/api/write"
 )
 
 func IngestionService(csvURL string) error {
@@ -21,35 +25,64 @@ func IngestionService(csvURL string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		err := errors.New("received non-OK HTTP status")
+		err := errors.New("received non-OK HTTP status: " + resp.Status)
 		log.Printf("Failed to fetch CSV: %s, status code: %d", resp.Status, resp.StatusCode)
 		return err
 	}
 
-	csvData, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Failed to read CSV data: %v", err)
-		return err
-	}
-
-	records, err := csv.NewReader(bytes.NewReader(csvData)).ReadAll()
-	if err != nil {
-		log.Printf("Failed to parse CSV data: %v", err)
-		return err
-	}
-
-	if len(records) == 0 {
-		err := errors.New("no records found in CSV data")
-		log.Println(err)
-		return err
-	}
-
-	err = dataAccess.IngestSensorData(records)
-	if err != nil {
+	reader := csv.NewReader(resp.Body)
+	if err := IngestSensorData(reader); err != nil {
 		log.Printf("Failed to ingest sensor data: %v", err)
 		return err
 	}
-
-	log.Printf("Successfully ingested %d records", len(records))
 	return nil
+}
+
+func IngestSensorData(reader *csv.Reader) error {
+	header := true
+	for {
+		record, err := reader.Read()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			log.Printf("Error reading CSV record: %v", err)
+			continue
+		}
+		if header {
+			header = false
+			continue
+		}
+
+		point, err := createPoint(record)
+		if err != nil {
+			log.Printf("Error creating point: %v", err)
+			continue
+		}
+		initializer.WriteAPI.WritePoint(point)
+	}
+	initializer.WriteAPI.Flush()
+	return nil
+}
+
+func createPoint(record []string) (*write.Point, error) {
+	timestamp, err := time.Parse("2006-01-02 15:04:05", record[5])
+	if err != nil {
+		return nil, err
+	}
+
+	reading, err := strconv.Atoi(record[3])
+	if err != nil {
+		return nil, err
+	}
+
+	point := influxdb2.NewPointWithMeasurement("sensor-data-measurement").
+		AddTag("id", record[0]).
+		AddTag("type", record[1]).
+		AddTag("subtype", record[2]).
+		AddField("reading", reading).
+		AddTag("location", record[4]).
+		SetTime(timestamp)
+
+	return point, nil
 }

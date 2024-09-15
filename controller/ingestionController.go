@@ -34,16 +34,14 @@ func IngestionController(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = service.IngestionService(decodedURL)
-	if err != nil {
+	if err = service.IngestionService(decodedURL); err != nil {
 		log.Printf("Error processing ingestion: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte("Ingestion successful"))
-	if err != nil {
+	if _, err = w.Write([]byte("Ingestion successful")); err != nil {
 		log.Printf("Error writing response: %v", err)
 	}
 }
