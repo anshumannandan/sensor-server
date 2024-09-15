@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/csv"
 	"errors"
 	"io"
@@ -41,6 +42,7 @@ func IngestionService(csvURL string) error {
 }
 
 func IngestSensorData(reader *csv.Reader) error {
+	points:= []*write.Point{}
 	header := true
 	for {
 		record, err := reader.Read()
@@ -61,9 +63,10 @@ func IngestSensorData(reader *csv.Reader) error {
 			log.Printf("Error creating point: %v", err)
 			continue
 		}
-		initializer.WriteAPI.WritePoint(point)
+		points = append(points, point)
 	}
-	initializer.WriteAPI.Flush()
+	initializer.WriteAPI.WritePoint(context.Background(), points...)
+	initializer.WriteAPI.Flush(context.Background())
 	return nil
 }
 

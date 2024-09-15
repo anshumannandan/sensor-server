@@ -12,7 +12,7 @@ import (
 
 var (
 	Client   influxdb2.Client
-	WriteAPI api.WriteAPI
+	WriteAPI api.WriteAPIBlocking
 	QueryAPI api.QueryAPI
 	once     sync.Once
 )
@@ -20,7 +20,7 @@ var (
 func Initialize(url, token, org, bucket string) error {
 	var onceErr error
 	once.Do(func() {
-		Client = influxdb2.NewClientWithOptions(url, token, influxdb2.DefaultOptions().SetBatchSize(50_000))
+		Client = influxdb2.NewClient(url, token)
 
 		orgInfo, err := Client.OrganizationsAPI().FindOrganizationByName(context.Background(), org)
 		if err != nil {
@@ -47,7 +47,7 @@ func Initialize(url, token, org, bucket string) error {
 		} else {
 			log.Printf("Bucket found: %s\n", bucketInfo.Name)
 		}
-		WriteAPI = Client.WriteAPI(org, bucket)
+		WriteAPI = Client.WriteAPIBlocking(org, bucket)
 		QueryAPI = Client.QueryAPI(org)
 	})
 	return onceErr
