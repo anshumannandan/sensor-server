@@ -13,14 +13,14 @@ func main() {
 	dbOrg := "sensor-org"
 	dbBucket := "sensor-data-bucket"
 
-    if err := initializer.Initialize(dbURL, dbToken, dbOrg, dbBucket); err != nil {
-        log.Fatalf("Initialization failed: %v", err)
-    } else {
+	if err := initializer.Initialize(dbURL, dbToken, dbOrg, dbBucket); err != nil {
+		log.Fatalf("Initialization failed: %v", err)
+	} else {
 		log.Println("Initialization successful")
 	}
 
-	http.HandleFunc("/ingest", controller.IngestionController);
-	http.HandleFunc("/median", controller.RetrievalController);
+	http.HandleFunc("/ingest", controller.IngestionController)
+	http.HandleFunc("/median", controller.RetrievalController)
 
 	log.Println("Server Listening on port 5000")
 	log.Fatal(http.ListenAndServe(":5000", nil))

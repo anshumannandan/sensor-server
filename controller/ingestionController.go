@@ -14,6 +14,11 @@ func IngestionController(w http.ResponseWriter, r *http.Request) {
 	}
 
 	csvURL := r.URL.Query().Get("url")
+	if csvURL == "" {
+		log.Printf("url parameter is required")
+		http.Error(w, "url parameter is required", http.StatusBadRequest)
+		return
+	}
 
 	decodedURL, err := url.QueryUnescape(csvURL)
 	if err != nil {

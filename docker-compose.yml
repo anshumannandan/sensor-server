@@ -19,4 +19,4 @@ services:
       - "5000:5000"
     depends_on:
       - influxdb
-    restart: always
+    restart: on-failure
